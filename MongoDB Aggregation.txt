@@ -1,0 +1,284 @@
+[$match, $count, $project, $group, $sum(acum), $avg(acum), $push(acum)(create-array) $sort, $limit, $unwind(array), $addFields, $size(array), $ifNull, $all, $and, $or, $lookup, $first, $arrayElemAt]
+
+##Counting all active true field: 2stage
+[
+ {
+  $match: {
+     isActive: true
+  }
+ },
+  {
+     $count: 'allActive'
+  }
+]
+............................................................
+
+##Count average Age: 1stage
+[
+ {
+  $group: {
+     _id: null, (_id null for make all in 1 documents)
+     averageAge: {
+      $avg: "$age" (counting average of age)
+     }
+ }
+]
+.............................................................
+
+## Number of males and females: 1stage
+[
+  {
+    $group: {
+      _id: '$gender',
+      count: {
+        $sum: 1,
+      }
+    }
+  },
+]
+.....................................................
+
+##Top 2 Favorite Fruit List by : 3stage
+[
+  {
+    $group: {
+      _id: "$favoriteFruit", (group up by fruit)
+      count: {
+        $sum: 1, (count all fruit by adding 1 by 1)
+      }
+    }
+  },
+  {
+    $sort: {
+      count: -1, (sorted -1 asce, 1 desc)
+    }
+  },
+  {
+    $limit: 2, (result limit 2)
+  }
+]
+.......................................................
+
+##Count All Country User in desc order and show top 3: 3stage
+[
+  {
+    $group: {
+      _id: "$company.location.country",
+      countrySum: {
+        $sum: 1
+      }
+    }
+  },
+  {
+    $sort: {
+      countrySum: 1
+    }
+  },
+  {
+    $limit: 3
+  }
+]
+
+.............................................................
+##Working with Array[], Average number of tags per user: 2/3stage
+1st way= 3stage
+[
+  {
+    $unwind: {  ($unwind use for array to make array in seperate documents)
+      path: "$tags"  (path of array)
+    }
+  },
+  {
+    $group: {
+      _id: "$_id",
+      numberOfTags: {
+        $sum: 1
+      }
+    }
+  },
+  {
+    $group: {
+      _id: null,
+      averageTagPerUser: {
+        $avg: "$numberOfTags"
+      }
+    }
+  }
+]
+.................................................................
+2nd way= 2stage
+[
+  {
+    $addFields: {  ($addFields create new custom field with any name)
+      numberOfTags: {
+        $size: {   ($size count size of array, only works for array)
+          $ifNull: ["$tags", []]  (handling empty array, if null in tags set [] empty array)
+        }
+      }
+    }
+  },
+  {
+    $group: {
+      _id: null,
+      averageTags: {
+        $avg: "$numberOfTags"
+      }
+    }
+  }
+]
+........................................................
+
+##give name, age where user isn't active and tags is valit: 2stage
+[
+  {
+    $match: {
+      isActive: false,
+      tags: "velit"
+    }
+  },
+  {
+    $project: {  ($project only give requested field, if not there create one)
+      name: 1,
+      age: 1
+    }
+  }
+]
+...........................................................
+
+##Match +1(940) number only with regex and count them: 2stage
+[
+  {
+    $match: {
+      "company.phone": /^\+1 \(940\)/
+    }
+  },
+  {
+      $count: 'Number with +1(940)'
+  }
+]
+.............................................................
+
+##Who registred most recent: 3stage
+[
+  {
+    $sort: {
+      registered: -1,
+    },
+  },
+  {
+    $limit: 3,
+  },
+  {
+    $project: {
+      name: 1,
+      age: 1,
+      registered: 1,
+    },
+  },
+]
+..............................................................
+
+##Which user loves which fruit, give all the names: 2stage
+[
+  {
+    $group: {
+      _id: "$favoriteFruit",
+      usersName: {
+        $push: "$name"  ($push append/add all value to an array )
+      }
+    }
+  }
+]
+...............................................................
+
+##Find how many user with name "ad" in their 2nd tags: 2stage
+[
+  {
+    $match: {
+      "tags.1": "ad",
+    },
+  },
+  {
+    $count: 'userWithAd'
+  }
+]
+..................................................................
+
+##Users who have enim and id both in their tags: 1stage
+1st way=
+[
+  {
+    $match: {
+      tags: {
+        $all: ["enim", "id"] ($all need both field to be there)
+      }
+    }
+  }
+]
+.....................................................................
+2nd way= 
+[
+  {
+    $match: {
+        $and: [{tags:"enim"}, {tags:"id"}]  ($and need both field to be true)
+    }
+  }
+]
+.......................................................................
+
+##How many user from USA in specified company: 2stage
+[
+  {
+    $match: {
+      "company.location.country": "USA",
+    },
+  },
+  {
+    $group: {
+      _id: "$company.title",
+      totalUserInUSA: {
+        $sum: 1,
+      },
+    },
+  },
+]
+............................................................................
+
+##getting another collection data in other collection. 2 diffrent collection connect: 2stage
+1st way=
+[
+  {
+    $lookup: {   ($lookup use for get another collection data)
+      from: "authors",
+      localField: "author_id", 
+      foreignField: "_id",
+      as: "author_details"
+    }
+  },
+  {
+    $addFields: {
+      author_details: {
+        $first: "$author_details"  ($first use for get first index of an array-[0])
+      }
+    }
+  }
+]
+..................................................................................
+2nd way=
+[
+  {
+    $lookup: {   ($lookup use for get another collection data)
+      from: "authors",
+      localField: "author_id",
+      foreignField: "_id",
+      as: "author_details"
+    }
+  },
+  {
+    $addFields: {
+      author_details: {
+        $arrayElemAt: ["$author_details", 0]   ($arrayElemAt use for get any index value of array ["$field name", 						0-array index])
+      }
+    }
+  }
+]
