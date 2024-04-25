@@ -1,4 +1,4 @@
-[$match, $count, $project, $group, $sum(acum), $avg(acum), $push(acum)(create-array) $sort, $limit, $unwind(array), $addFields, $size(array), $ifNull, $all, $and, $or, $lookup, $first, $arrayElemAt]
+Used Syntax: [$match, $count, $project, $group, $sum(acum), $avg(acum), $push(acum)(create-array) $sort, $limit, $unwind(array), $addFields, $size(array), $ifNull, $all, $and, $or, $lookup, $first, $arrayElemAt]
 
 ##Counting all active true field: 2stage
 [
